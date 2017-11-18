@@ -14,11 +14,12 @@ public class Zone {
     private String zGUID, zName;
     private File zImage;
 
+    public Zone(){};
+
     //default constructor for empty zone
     public Zone(String zGUID) {
         this.zGUID = zGUID;
     }
-
     //constructor allows for full zone config
     public Zone(String zGUID, String zName, boolean zOnOff) {
         this.zGUID = zGUID;
