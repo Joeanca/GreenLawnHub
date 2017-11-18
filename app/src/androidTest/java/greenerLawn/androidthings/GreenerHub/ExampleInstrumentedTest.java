@@ -1,4 +1,4 @@
-package rocks.androidthings.hellothings;
+package greenerLawn.androidthings.GreenerHub;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

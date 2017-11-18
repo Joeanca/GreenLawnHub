@@ -1,4 +1,4 @@
-package rocks.androidthings.hellothings;
+package greenerLawn.androidthings.GreenerHub;
 
 import org.junit.Test;
 
