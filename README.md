@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HelloThings
 A simple Android Things application to get you started with it
 
@@ -13,3 +14,7 @@ git clone git@github.com:mplacona/HelloThings.git
 Open up the application on Android Studio, and click `Run`. You should see your device showing in the list if you followed the steps in [Get started with Android Things today!](https://www.androidthings.rocks/2017/01/03/get-started-with-android-things-today/).
 
 ![Android Things application running](https://www.androidthings.rocks/images/hello-things.png)
+=======
+# GreenLawnHub
+Physical device for the greenhub project
+>>>>>>> b398c53d0f29cc0cd1f9b313c5ab7e02759f88b2

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Created by https://www.gitignore.io/api/intellij,android,osx,linux,windows
 
 ### Intellij ###
@@ -50,11 +51,17 @@ crashlytics-build.properties
 
 
 ### Android ###
+=======
+>>>>>>> b398c53d0f29cc0cd1f9b313c5ab7e02759f88b2
 # Built application files
 *.apk
 *.ap_
 
+<<<<<<< HEAD
 # Files for the Dalvik VM
+=======
+# Files for the ART/Dalvik VM
+>>>>>>> b398c53d0f29cc0cd1f9b313c5ab7e02759f88b2
 *.dex
 
 # Java class files
@@ -63,6 +70,10 @@ crashlytics-build.properties
 # Generated files
 bin/
 gen/
+<<<<<<< HEAD
+=======
+out/
+>>>>>>> b398c53d0f29cc0cd1f9b313c5ab7e02759f88b2
 
 # Gradle files
 .gradle/
@@ -80,6 +91,7 @@ proguard/
 # Android Studio Navigation editor temp files
 .navigation/
 
+<<<<<<< HEAD
 ### Android Patch ###
 gen-external-apklibs
 
@@ -145,3 +157,29 @@ $RECYCLE.BIN/
 # Kotlin
 annotations/
 gradle.properties
+=======
+# Android Studio captures folder
+captures/
+
+# Intellij
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/dictionaries
+.idea/libraries
+
+# Keystore files
+*.jks
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Freeline
+freeline.py
+freeline/
+freeline_project_description.json
+>>>>>>> b398c53d0f29cc0cd1f9b313c5ab7e02759f88b2
