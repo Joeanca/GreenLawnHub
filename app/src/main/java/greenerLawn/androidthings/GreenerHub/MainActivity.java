@@ -2,12 +2,10 @@ package greenerLawn.androidthings.GreenerHub;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.things.pio.Gpio;
@@ -16,12 +14,15 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends Activity {
 
@@ -33,7 +34,7 @@ public class MainActivity extends Activity {
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
     private DatabaseReference deviceDBRef;
-
+    private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM18", "BCM23", "BCM24", "BCM25"));
 
     private Handler mHandler = new Handler();
     private Gpio mLedGpio;
@@ -79,18 +80,28 @@ public class MainActivity extends Activity {
     private void zoneSetup() {
         for (int i = 0; i<availZones; i++){
             zoneList.add(new Zone());
+            zoneList.get(i).setPort(LEDS.get(i));
         }
     }
 
     private void eventHandler(final DatabaseReference myRef) {
-
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 //iterate
                 if (dataSnapshot.child(deviceID).exists()){
                     deviceDBRef = myRef.child(deviceID);
-                    // TODO TIE TO LEDS
+//                    GenericTypeIndicator<List<Zone>> genericTypeIndicator =new GenericTypeIndicator<List<Zone>>(){};
+//                    List<Zone> taskDesList=dataSnapshot.getValue(genericTypeIndicator);
+//                    for(int i=0;i<taskDesList.size();i++){
+//                        Log.e(TAG, "ZONES: " + taskDesList.get(i).getPort() + " is " + taskDesList.get(i).iszOnOff());
+//
+//                    }
+                    for (DataSnapshot postSnapshot: dataSnapshot.child(deviceID).getChildren()){
+                        zoneList.add(postSnapshot.getValue(Zone.class));
+                        Zone zone = postSnapshot.getValue(Zone.class);
+                        Log.e(TAG, "ZONES: " + zone.getPort() + " is " + zone.iszOnOff());
+                    }
                 }else{
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
                     deviceDBRef = myRef.child(deviceID);
@@ -108,7 +119,8 @@ public class MainActivity extends Activity {
             }
         });
     }
-    private Runnable mBlinkRunnable = new Runnable() {
+
+     private Runnable mBlinkRunnable = new Runnable() {
         @Override
         public void run() {
             if (mLedGpio == null) {

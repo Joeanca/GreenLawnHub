@@ -13,6 +13,7 @@ public class Zone {
     private boolean zOnOff;
     private String zGUID, zName;
     private File zImage;
+    private String port;
 
     public Zone(){};
 
@@ -59,4 +60,7 @@ public class Zone {
         this.zImage = zImage;
     }
 
+    public void setPort(String port){this.port = port;}
+
+    public String getPort(){return port;}
 }
