@@ -1,8 +1,13 @@
 package greenerLawn.androidthings.GreenerHub;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.things.pio.Gpio;
@@ -15,6 +20,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends Activity {
@@ -36,12 +42,16 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        zoneSetup();
+//        if (isNetworkAvailable()){
+//            Log.e(TAG, "onCreate: Connected");
+//            Intent wifi = new Intent(this, WiFi_activity.class);
+//            startActivity(wifi);
+//        }
 
         // Write a message to the database
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("greennerHubs");
+        zoneSetup();
         eventHandler(myRef);
 
         // TODO setup listeners and tie to led
@@ -58,6 +68,13 @@ public class MainActivity extends Activity {
             Log.e(TAG, "Error on PeripheralIO API", e);
         }
     }
+        private boolean isNetworkAvailable() {
+            ConnectivityManager connectivityManager
+                    = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
+
 
     private void zoneSetup() {
         for (int i = 0; i<availZones; i++){
@@ -72,10 +89,16 @@ public class MainActivity extends Activity {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 //iterate
                 if (dataSnapshot.child(deviceID).exists()){
-//                    deviceDBRef = myRef.child(deviceID);
-                    Log.e(TAG, "onDataChange: DEVICE EXISTS");
+                    deviceDBRef = myRef.child(deviceID);
+                    // TODO TIE TO LEDS
                 }else{
-                    Log.e(TAG, "onDataChange: DEVICE DOESN'T EXIST");
+                    Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
+                    deviceDBRef = myRef.child(deviceID);
+                    for (Zone zone: zoneList){
+                        deviceDBRef.push().setValue(zone);
+                        Log.e("PUSHED", "onDataChange: " + zone.toString());
+
+                    }
                 }
             }
 

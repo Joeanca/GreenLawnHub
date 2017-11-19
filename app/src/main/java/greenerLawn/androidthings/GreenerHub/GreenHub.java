@@ -48,7 +48,7 @@ public class GreenHub {
 
 
     public boolean setZoneList(List<Zone> zoneList) {
-        boolean valid = false
+        boolean valid = false;
         if(zoneList.size()<= this.getPorts()){
             //i can't let you do that dave.
             valid = true;

@@ -86,7 +86,7 @@ public class WiFi_activity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, 0, 0, "Refresh");
         return super.onCreateOptionsMenu(menu);}
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
+        public boolean onMenuItemSelected(int featureId, MenuItem item) {
         mainWifi.startScan();
 
         return super.onMenuItemSelected(featureId, item);}
