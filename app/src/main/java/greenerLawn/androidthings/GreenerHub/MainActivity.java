@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -34,10 +35,11 @@ public class MainActivity extends Activity {
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
     private DatabaseReference deviceDBRef;
-    private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM18", "BCM23", "BCM24", "BCM25"));
+    private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM12", "BCM23", "BCM24", "BCM25"));
 
     private Handler mHandler = new Handler();
-    private Gpio mLedGpio;
+     private Gpio mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
+    private List <Gpio> LedGPIO = new ArrayList<Gpio>(Arrays.asList( mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,17 +61,37 @@ public class MainActivity extends Activity {
 
         // TODO activity to connect to wifi
 
-        PeripheralManagerService service = new PeripheralManagerService();
-        try {
-            mLedGpio = service.openGpio(LED);
-            mLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-            Log.i(TAG, "Start blinking LED GPIO pin");
-            mHandler.post(mBlinkRunnable);
+        // TODO SETUP GPIO
+        try{
+            PeripheralManagerService service = new PeripheralManagerService();
+            mLedGpio4 = service.openGpio(LEDS.get(0));
+            mLedGpio17  = service.openGpio(LEDS.get(1));
+            mLedGpio27  = service.openGpio(LEDS.get(2));
+            mLedGpio22 = service.openGpio(LEDS.get(3));
+            mLedGpio12 = service.openGpio(LEDS.get(4));
+            mLedGpio23 = service.openGpio(LEDS.get(5));
+            mLedGpio24 = service.openGpio(LEDS.get(6));
+            mLedGpio25 = service.openGpio(LEDS.get(7));
+            mLedGpio4.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio17.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio27.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio22.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio12.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio23.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio24.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedGpio25.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+
         } catch (IOException e) {
-            Log.e(TAG, "Error on PeripheralIO API", e);
+            e.printStackTrace();
         }
     }
-        private boolean isNetworkAvailable() {
+
+    private void setupGPIO(Gpio gpio, String ledPort) {
+
+
+    }
+
+    private boolean isNetworkAvailable() {
             ConnectivityManager connectivityManager
                     = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
@@ -80,7 +102,7 @@ public class MainActivity extends Activity {
     private void zoneSetup() {
         for (int i = 0; i<availZones; i++){
             zoneList.add(new Zone());
-            zoneList.get(i).setPort(LEDS.get(i));
+            zoneList.get(i).setZoneNumber("" + (i+1) );
         }
     }
 
@@ -91,17 +113,35 @@ public class MainActivity extends Activity {
                 //iterate
                 if (dataSnapshot.child(deviceID).exists()){
                     deviceDBRef = myRef.child(deviceID);
-//                    GenericTypeIndicator<List<Zone>> genericTypeIndicator =new GenericTypeIndicator<List<Zone>>(){};
-//                    List<Zone> taskDesList=dataSnapshot.getValue(genericTypeIndicator);
-//                    for(int i=0;i<taskDesList.size();i++){
-//                        Log.e(TAG, "ZONES: " + taskDesList.get(i).getPort() + " is " + taskDesList.get(i).iszOnOff());
-//
-//                    }
-                    for (DataSnapshot postSnapshot: dataSnapshot.child(deviceID).getChildren()){
-                        zoneList.add(postSnapshot.getValue(Zone.class));
-                        Zone zone = postSnapshot.getValue(Zone.class);
-                        Log.e(TAG, "ZONES: " + zone.getPort() + " is " + zone.iszOnOff());
-                    }
+                    deviceDBRef.child("zones").addChildEventListener(new ChildEventListener() {
+                        @Override
+                        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                        }
+
+                        @Override
+                        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                            String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
+                            boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
+//                            Log.e(TAG, "ZONES: " + zone.getPort() + " is " + zone.iszOnOff());
+                            toggleLED(port, iszOnOff );
+                        }
+
+                        @Override
+                        public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+                        }
+
+                        @Override
+                        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
                 }else{
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
                     deviceDBRef = myRef.child(deviceID);
@@ -121,33 +161,58 @@ public class MainActivity extends Activity {
         });
     }
 
-     private Runnable mBlinkRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (mLedGpio == null) {
-                return;
-            }
-            try {
-                // Toggle the GPIO state
-                mLedGpio.setValue(!mLedGpio.getValue());
-                Log.d(TAG, "State set to " + mLedGpio.getValue());
-                mHandler.postDelayed(mBlinkRunnable, INTERVAL_BETWEEN_BLINKS_MS);
-            } catch (IOException e) {
-                Log.e(TAG, "Error on PeripheralIO API", e);
-            }
+    private void toggleLED(String zoneNumber, boolean ledStateToSet) {
+        Log.e(TAG, "ZONES: " + zoneNumber + " is " + ledStateToSet);
+        if (mLedGpio4 == null) {
+            Log.e(TAG, "didn't go in");
+            return;
         }
-    };
+        try {
+            // Toggle the GPIO state
+            mLedGpio4.setValue(ledStateToSet);
+            Log.e(TAG, "State set to " + mLedGpio4.getValue());
+        } catch (IOException e) {
+            Log.e(TAG, "Error on PeripheralIO API", e);
+        }
+    }
+
+
+
+//    private Runnable mBlinkRunnable = new Runnable() {
+//        @Override
+//        public void run() {
+//            if (mLedGpio == null) {
+//                return;
+//            }
+//            try {
+//                // Toggle the GPIO state
+//                mLedGpio.setValue(!mLedGpio.getValue());
+//                Log.d(TAG, "State set to " + mLedGpio.getValue());
+//                mHandler.postDelayed(mBlinkRunnable, INTERVAL_BETWEEN_BLINKS_MS);
+//            } catch (IOException e) {
+//                Log.e(TAG, "Error on PeripheralIO API", e);
+//            }
+//        }
+//    };
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mHandler.removeCallbacks(mBlinkRunnable);
-        Log.i(TAG, "Closing LED GPIO pin");
-        try {
-            mLedGpio.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error on PeripheralIO API", e);
-        } finally {
-            mLedGpio = null;
+//        mHandler.removeCallbacks(mBlinkRunnable);
+//        Log.i(TAG, "Closing LED GPIO pin");
+        for (int i = 0; i < LedGPIO.size(); i++) {
+            try {
+                LedGPIO.get(i).close();
+            } catch (IOException e) {
+                Log.e(TAG, "Error on PeripheralIO API", e);
+            } finally {
+                for (int j = 0; j < LedGPIO.size(); j++) {
+                    try {
+                        LedGPIO.get(i).setValue(false);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }
