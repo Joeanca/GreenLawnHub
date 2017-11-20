@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
     private static final int INTERVAL_BETWEEN_BLINKS_MS = 1000;
     private static final String LED = "BCM22";
     private static final String deviceID = "pi1";
-    private static final String secretCode = "pi1Password";
+    private static final String serial = "pi1Password";
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
     private DatabaseReference deviceDBRef;
@@ -105,8 +105,9 @@ public class MainActivity extends Activity {
                 }else{
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
                     deviceDBRef = myRef.child(deviceID);
+                    deviceDBRef.child("serial").setValue(serial);
                     for (Zone zone: zoneList){
-                        deviceDBRef.push().setValue(zone);
+                        deviceDBRef.child("zones").push().setValue(zone);
                         Log.e("PUSHED", "onDataChange: " + zone.toString());
 
                     }
