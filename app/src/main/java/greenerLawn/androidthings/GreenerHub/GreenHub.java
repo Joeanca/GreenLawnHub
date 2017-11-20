@@ -6,10 +6,6 @@ package greenerLawn.androidthings.GreenerHub;
 
 import java.util.List;
 
-/**
- * Created by jason on 11/16/2017.
- */
-
 public class GreenHub {
 
     private String serial;
@@ -41,7 +37,7 @@ public class GreenHub {
         return ports;
     }
 
-    public void setPorts(int zone) {
+    public void setPorts(int ports) {
         this.ports = ports;
     }
 

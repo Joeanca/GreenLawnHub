@@ -14,7 +14,7 @@ public class Zone {
     private File zImage;
     private String zoneNumber;
 
-    public Zone(){};
+    public Zone(){}
 
     //default constructor for empty zone
     //constructor allows for full zone config
