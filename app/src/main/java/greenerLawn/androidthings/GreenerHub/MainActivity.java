@@ -32,9 +32,7 @@ import android.widget.Switch;
 public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
-    private static final int INTERVAL_BETWEEN_BLINKS_MS = 1000;
-    private static final String LED = "BCM22";
-    private static final String deviceID = "pi2";
+    private static final String deviceID = "pi1";
     private static final String serial = "pi1Password";
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
@@ -42,10 +40,10 @@ public class MainActivity extends Activity {
     private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM12", "BCM23", "BCM24", "BCM25"));
     List <Gpio> LedGPIO;
     private Handler mHandler = new Handler();
-    private Gpio mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
+    private Gpio mLedGpio4,mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
     private Switch switch1, switch2, switch3, switch4, switch5, switch6, switch7, switch8;
     private List<Switch> switchList;
-    private GreenHub hub;
+    private GreenHub hub = new GreenHub(serial, availZones);;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +65,13 @@ public class MainActivity extends Activity {
 
 
         // TODO activity to connect to wifi
+
+        // TODO authenticate PI to restore firebase security
+
+        // TODO update pie on boot or resume previous programming
+
+        // TODO setting scheduling up and changes
+
 
     }
 
@@ -163,7 +168,6 @@ public class MainActivity extends Activity {
                 }else{
                     // SETUP THE DEVICE FOR THE FIRST TIME
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
-                    hub = new GreenHub(serial, availZones);
                     deviceDBRef = myRef.child(deviceID);
                     deviceDBRef.setValue(hub);
                     for (Zone zone: zoneList){
