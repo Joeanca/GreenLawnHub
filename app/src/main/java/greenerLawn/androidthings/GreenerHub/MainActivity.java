@@ -24,13 +24,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.widget.Switch;
+
 
 public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
     private static final int INTERVAL_BETWEEN_BLINKS_MS = 1000;
     private static final String LED = "BCM22";
-    private static final String deviceID = "pi1";
+    private static final String deviceID = "pi2";
     private static final String serial = "pi1Password";
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
@@ -38,21 +42,23 @@ public class MainActivity extends Activity {
     private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM12", "BCM23", "BCM24", "BCM25"));
     List <Gpio> LedGPIO;
     private Handler mHandler = new Handler();
-     private Gpio mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
-
+    private Gpio mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
+    private Switch switch1, switch2, switch3, switch4, switch5, switch6, switch7, switch8;
+    private List<Switch> switchList;
+    private GreenHub hub;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setupGPIO();
         zoneSetup();
-
         setContentView(R.layout.activity_main);
 //        if (isNetworkAvailable()){
 //            Log.e(TAG, "onCreate: Connected");
 //            Intent wifi = new Intent(this, WiFi_activity.class);
 //            startActivity(wifi);
 //        }
+        setSwitches();
 
         // SETUP DB
         FirebaseDatabase database = FirebaseDatabase.getInstance();
@@ -61,6 +67,18 @@ public class MainActivity extends Activity {
 
 
         // TODO activity to connect to wifi
+
+    }
+
+    private void setSwitches() {
+        switch1 = (Switch) findViewById(R.id.switch1);
+        switch2 = (Switch) findViewById(R.id.switch2);
+        switch3 = (Switch) findViewById(R.id.switch3);
+        switch4 = (Switch) findViewById(R.id.switch4);
+        switch5 = (Switch) findViewById(R.id.switch5);
+        switch6 = (Switch) findViewById(R.id.switch6);
+        switch7 = (Switch) findViewById(R.id.switch7);
+        switch8 = (Switch) findViewById(R.id.switch8);
 
     }
 
@@ -111,6 +129,8 @@ public class MainActivity extends Activity {
                 //iterate
                 if (dataSnapshot.child(deviceID).exists()){
                     deviceDBRef = myRef.child(deviceID);
+                    hub = dataSnapshot.child(deviceID).getValue(GreenHub.class);
+                    Log.e("PORTS", "HUBPORTS: " + hub.getPorts());
                     deviceDBRef.child("zones").addChildEventListener(new ChildEventListener() {
                         @Override
                         public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -122,6 +142,7 @@ public class MainActivity extends Activity {
                             String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
                             boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
                             toggleLED(port, iszOnOff );
+
                         }
 
                         @Override
@@ -142,12 +163,13 @@ public class MainActivity extends Activity {
                 }else{
                     // SETUP THE DEVICE FOR THE FIRST TIME
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
+                    hub = new GreenHub(serial, availZones);
                     deviceDBRef = myRef.child(deviceID);
-                    deviceDBRef.child("serial").setValue(serial);
+                    deviceDBRef.setValue(hub);
                     for (Zone zone: zoneList){
                         deviceDBRef.child("zones").push().setValue(zone);
-
                     }
+                    hub.setZoneList(zoneList);
                 }
             }
 
@@ -160,7 +182,9 @@ public class MainActivity extends Activity {
 
     private void toggleLED(String zoneNumber, boolean ledStateToSet) {
         LedGPIO = new ArrayList<Gpio>(Arrays.asList( mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25));
+        switchList = new ArrayList<>(Arrays.asList(switch1, switch2, switch3, switch4, switch5, switch6, switch7, switch8));
         LedGPIO.get((Integer.parseInt(zoneNumber))-1);
+        switchList.get((Integer.parseInt(zoneNumber))-1).setChecked(ledStateToSet);
         Log.e(TAG, "ZONES: " + zoneNumber + " is " + ledStateToSet);
         if (LedGPIO.get((Integer.parseInt(zoneNumber))-1) == null) {
             Log.e(TAG, "LED VALUE IS NULL FOR " + zoneNumber);

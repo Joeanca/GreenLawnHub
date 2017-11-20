@@ -24,6 +24,10 @@ public class GreenHub {
         this.zoneList = zoneList;
         this.schedulesList = schedulesList;
     }
+    public GreenHub(String serial, int ports) {
+        this.serial = serial;
+        this.ports = ports;
+    }
 
     public String getSerial() {
         return serial;

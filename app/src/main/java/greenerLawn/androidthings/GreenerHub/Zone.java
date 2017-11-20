@@ -26,6 +26,7 @@ public class Zone {
     }
 
     public void setzOnOff(boolean zOnOff) {
+        // TURN ON OFF
         this.zOnOff = zOnOff;
     }
 
