@@ -12,33 +12,32 @@ import java.util.List;
 
 public class GreenHub {
 
-    private String ghGUID;
+    private String serial;
     private int ports;
     private List<Zone> zoneList;
     private List<String> schedulesList;
-
-    public GreenHub() {
-    }
-
-    public GreenHub(String ghGUID, List<Zone> zoneList, List<String> schedulesList) {
-        this.ghGUID = ghGUID;
+    // EMPTY CONSTRUCTOR FOR FIREBASE
+    public GreenHub() {}
+    // OVERLOADED CONSTRUCTOR FOR SETTING IT UP
+    public GreenHub(String serial, List<Zone> zoneList, List<String> schedulesList) {
+        this.serial = serial;
         this.zoneList = zoneList;
         this.schedulesList = schedulesList;
     }
 
-    public String getGhGUID() {
-        return ghGUID;
+    public String getSerial() {
+        return serial;
     }
 
-    public void setGhGUID(String ghGUID) {
-        this.ghGUID = ghGUID;
+    public void setserial(String serial) {
+        this.serial = serial;
     }
 
     public int getPorts() {
         return ports;
     }
 
-    public void setPorts(int ports) {
+    public void setPorts(int zone) {
         this.ports = ports;
     }
 
