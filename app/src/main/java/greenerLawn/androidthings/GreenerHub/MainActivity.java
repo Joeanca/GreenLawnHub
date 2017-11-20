@@ -36,14 +36,17 @@ public class MainActivity extends Activity {
     private static List<Zone> zoneList = new ArrayList<Zone>();
     private DatabaseReference deviceDBRef;
     private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM12", "BCM23", "BCM24", "BCM25"));
-
+    List <Gpio> LedGPIO;
     private Handler mHandler = new Handler();
      private Gpio mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
-    private List <Gpio> LedGPIO = new ArrayList<Gpio>(Arrays.asList( mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setupGPIO();
+        zoneSetup();
+
         setContentView(R.layout.activity_main);
 //        if (isNetworkAvailable()){
 //            Log.e(TAG, "onCreate: Connected");
@@ -51,17 +54,17 @@ public class MainActivity extends Activity {
 //            startActivity(wifi);
 //        }
 
-        // Write a message to the database
+        // SETUP DB
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("greennerHubs");
-        zoneSetup();
         eventHandler(myRef);
 
-        // TODO setup listeners and tie to led
 
         // TODO activity to connect to wifi
 
-        // TODO SETUP GPIO
+    }
+
+    private void setupGPIO() {
         try{
             PeripheralManagerService service = new PeripheralManagerService();
             mLedGpio4 = service.openGpio(LEDS.get(0));
@@ -80,14 +83,9 @@ public class MainActivity extends Activity {
             mLedGpio23.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLedGpio24.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLedGpio25.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void setupGPIO(Gpio gpio, String ledPort) {
-
 
     }
 
@@ -123,7 +121,6 @@ public class MainActivity extends Activity {
                         public void onChildChanged(DataSnapshot dataSnapshot, String s) {
                             String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
                             boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
-//                            Log.e(TAG, "ZONES: " + zone.getPort() + " is " + zone.iszOnOff());
                             toggleLED(port, iszOnOff );
                         }
 
@@ -143,12 +140,12 @@ public class MainActivity extends Activity {
                         }
                     });
                 }else{
+                    // SETUP THE DEVICE FOR THE FIRST TIME
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
                     deviceDBRef = myRef.child(deviceID);
                     deviceDBRef.child("serial").setValue(serial);
                     for (Zone zone: zoneList){
                         deviceDBRef.child("zones").push().setValue(zone);
-                        Log.e("PUSHED", "onDataChange: " + zone.toString());
 
                     }
                 }
@@ -162,38 +159,22 @@ public class MainActivity extends Activity {
     }
 
     private void toggleLED(String zoneNumber, boolean ledStateToSet) {
+        LedGPIO = new ArrayList<Gpio>(Arrays.asList( mLedGpio4, mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25));
+        LedGPIO.get((Integer.parseInt(zoneNumber))-1);
         Log.e(TAG, "ZONES: " + zoneNumber + " is " + ledStateToSet);
-        if (mLedGpio4 == null) {
-            Log.e(TAG, "didn't go in");
+        if (LedGPIO.get((Integer.parseInt(zoneNumber))-1) == null) {
+            Log.e(TAG, "LED VALUE IS NULL FOR " + zoneNumber);
             return;
         }
         try {
             // Toggle the GPIO state
-            mLedGpio4.setValue(ledStateToSet);
-            Log.e(TAG, "State set to " + mLedGpio4.getValue());
+            LedGPIO.get((Integer.parseInt(zoneNumber))-1).setValue(ledStateToSet);
+            Log.e(TAG, "State set to " + LedGPIO.get((Integer.parseInt(zoneNumber))-1).getValue());
         } catch (IOException e) {
             Log.e(TAG, "Error on PeripheralIO API", e);
         }
     }
 
-
-
-//    private Runnable mBlinkRunnable = new Runnable() {
-//        @Override
-//        public void run() {
-//            if (mLedGpio == null) {
-//                return;
-//            }
-//            try {
-//                // Toggle the GPIO state
-//                mLedGpio.setValue(!mLedGpio.getValue());
-//                Log.d(TAG, "State set to " + mLedGpio.getValue());
-//                mHandler.postDelayed(mBlinkRunnable, INTERVAL_BETWEEN_BLINKS_MS);
-//            } catch (IOException e) {
-//                Log.e(TAG, "Error on PeripheralIO API", e);
-//            }
-//        }
-//    };
     @Override
     protected void onDestroy() {
         super.onDestroy();

@@ -13,7 +13,7 @@ import java.util.List;
 public class GreenHub {
 
     private String ghGUID;
-    private int ports;
+    private int zoneNumber;
     private List<Zone> zoneList;
     private List<String> schedulesList;
 
@@ -34,12 +34,12 @@ public class GreenHub {
         this.ghGUID = ghGUID;
     }
 
-    public int getPorts() {
-        return ports;
+    public int getZoneNumber() {
+        return zoneNumber;
     }
 
-    public void setPorts(int ports) {
-        this.ports = ports;
+    public void setZoneNumber(int ports) {
+        this.zoneNumber = zoneNumber;
     }
 
     public List<Zone> getZoneList() {
@@ -49,7 +49,7 @@ public class GreenHub {
 
     public boolean setZoneList(List<Zone> zoneList) {
         boolean valid = false;
-        if(zoneList.size()<= this.getPorts()){
+        if(zoneList.size()<= this.getZoneNumber()){
             //i can't let you do that dave.
             valid = true;
             this.zoneList = zoneList;
