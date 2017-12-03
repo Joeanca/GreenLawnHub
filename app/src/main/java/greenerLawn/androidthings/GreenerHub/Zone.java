@@ -13,6 +13,7 @@ public class Zone {
     private boolean zOnOff;
     private File zImage;
     private String zoneNumber;
+    private String zoneId;
 
     public Zone(){}
 
@@ -41,4 +42,8 @@ public class Zone {
     public void setZoneNumber(String zoneNumber){this.zoneNumber = zoneNumber;}
 
     public String getZoneNumber(){return zoneNumber;}
+
+    public String getZoneId() {return zoneId;}
+
+    public void setZoneId(String zoneId) {this.zoneId = zoneId;}
 }

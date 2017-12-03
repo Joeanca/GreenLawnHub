@@ -29,7 +29,7 @@ public class GreenHub {
         return serial;
     }
 
-    public void setserial(String serial) {
+    public void setSerial(String serial) {
         this.serial = serial;
     }
 

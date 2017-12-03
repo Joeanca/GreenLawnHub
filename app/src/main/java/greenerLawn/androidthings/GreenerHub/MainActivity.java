@@ -1,13 +1,21 @@
 package greenerLawn.androidthings.GreenerHub;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 
+import com.firebase.jobdispatcher.FirebaseJobDispatcher;
+import com.firebase.jobdispatcher.GooglePlayDriver;
+import com.firebase.jobdispatcher.Job;
+import com.firebase.jobdispatcher.Lifetime;
+import com.firebase.jobdispatcher.Trigger;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.firebase.database.ChildEventListener;
@@ -15,17 +23,13 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
+
 import android.widget.Switch;
 
 
@@ -60,7 +64,7 @@ public class MainActivity extends Activity {
 
         // SETUP DB
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("greennerHubs");
+        DatabaseReference myRef = database.getReference("greennerHubs").child(deviceID);
         eventHandler(myRef);
 
 
@@ -71,8 +75,6 @@ public class MainActivity extends Activity {
         // TODO update pie on boot or resume previous programming
 
         // TODO setting scheduling up and changes
-
-
     }
 
     private void setSwitches() {
@@ -132,56 +134,80 @@ public class MainActivity extends Activity {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 //iterate
-                if (dataSnapshot.child(deviceID).exists()){
-                    deviceDBRef = myRef.child(deviceID);
-                    hub = dataSnapshot.child(deviceID).getValue(GreenHub.class);
-                    Log.e("PORTS", "HUBPORTS: " + hub.getPorts());
-                    deviceDBRef.child("zones").addChildEventListener(new ChildEventListener() {
-                        @Override
-                        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-
-                        }
-
-                        @Override
-                        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                            String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
-                            boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
-                            toggleLED(port, iszOnOff );
-
-                        }
-
-                        @Override
-                        public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-                        }
-
-                        @Override
-                        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-
-                        }
-                    });
-                }else{
+                if (!dataSnapshot.exists()){
                     // SETUP THE DEVICE FOR THE FIRST TIME
                     Log.e("SOMETHING", "onDataChange: DEVICE DOESN'T EXIST");
-                    deviceDBRef = myRef.child(deviceID);
-                    deviceDBRef.setValue(hub);
+                    myRef.setValue(hub);
                     for (Zone zone: zoneList){
-                        deviceDBRef.child("zones").push().setValue(zone);
+                        String key = myRef.child("zones").push().getKey();
+                        zone.setZoneId(key);
+                        myRef.child("zones").child(key).setValue(zone);
                     }
                     hub.setZoneList(zoneList);
                 }
+                hub = dataSnapshot.getValue(GreenHub.class);
+                Log.e("PORTS", "HUBPORTS: " + hub.getPorts());
+                myRef.child("zones").addChildEventListener(new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(DataSnapshot dataSnapshot, String s) {}
+
+                    @Override
+                    public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                        String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
+                        boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
+                        toggleLED(port, iszOnOff );
+                    }
+
+                    @Override
+                    public void onChildRemoved(DataSnapshot dataSnapshot) {}
+
+                    @Override
+                    public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {}
+                });
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
+            public void onCancelled(DatabaseError databaseError) {}
         });
+
+        myRef.child("schedules").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {}
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                setNextSchedule();
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {}
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        });
+    }
+
+    private void setNextSchedule(){
+        long dur = 1000;
+        AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, SprinklerReceiver.class);
+        intent.putExtra("zoneId", "KzQizUrWvy_kwt-i-ZN");
+        intent.putExtra("duration",  dur);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+
+        long currentTime = System.currentTimeMillis();
+        long oneMinute = 60 * 1000;
+        alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                currentTime + oneMinute,
+                pendingIntent);
     }
 
     private void toggleLED(String zoneNumber, boolean ledStateToSet) {
