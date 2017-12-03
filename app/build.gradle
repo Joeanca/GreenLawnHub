@@ -31,8 +31,6 @@ dependencies {
     provided 'com.google.android.things:androidthings:0.2-devpreview'
     implementation 'com.android.support:design:25.4.0'
     compile 'com.android.support:support-annotations:27.0.1'
-
-    compile 'com.firebase:firebase-jobdispatcher:0.8.4'
 }
 
 
