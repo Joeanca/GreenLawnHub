@@ -11,11 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 
-import com.firebase.jobdispatcher.FirebaseJobDispatcher;
-import com.firebase.jobdispatcher.GooglePlayDriver;
-import com.firebase.jobdispatcher.Job;
-import com.firebase.jobdispatcher.Lifetime;
-import com.firebase.jobdispatcher.Trigger;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.firebase.database.ChildEventListener;
@@ -36,7 +31,7 @@ import android.widget.Switch;
 public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
-    private static final String deviceID = "pi1";
+    private static final String deviceID = "pi3";
     private static final String serial = "pi1Password";
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
@@ -153,6 +148,7 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                        Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever part 1");
                         String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
                         boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
                         toggleLED(port, iszOnOff );
@@ -175,11 +171,15 @@ public class MainActivity extends Activity {
 
         myRef.child("schedules").addChildEventListener(new ChildEventListener() {
             @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {}
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                myRef.child("zones").child("-L-tzs9RXl3icYcvJ2t0").child("zOnOff").setValue(false);
+            }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                setNextSchedule();
+                String zoneGUID = dataSnapshot.getValue(Schedules.class).getzGUID();
+                //myRef.child("zones").child(zoneGUID).child("zOnOff").setValue(true);
+                setNextSchedule(zoneGUID);
             }
 
             @Override
@@ -193,17 +193,19 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void setNextSchedule(){
+    private void setNextSchedule(String zoneGUID){
         long dur = 1000;
         AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
-        Intent intent = new Intent(this, SprinklerReceiver.class);
-        intent.putExtra("zoneId", "KzQizUrWvy_kwt-i-ZN");
+        Intent intent = new Intent(MainActivity.this, SprinklerReceiver.class);
+        intent.setAction("greenerLawn.androidthings.GreenerHub");
+        intent.putExtra("zoneId", zoneGUID);
         intent.putExtra("duration",  dur);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, intent, 0);
 
         long currentTime = System.currentTimeMillis();
-        long oneMinute = 60 * 1000;
+        long oneMinute = 60 * 100; //second not min
+        Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever");
         alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
                 currentTime + oneMinute,

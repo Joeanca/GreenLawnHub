@@ -13,9 +13,28 @@ public class Zone {
     private boolean zOnOff;
     private File zImage;
     private String zoneNumber;
+    private String zName;
     private String zoneId;
+    private String picRef;
 
     public Zone(){}
+
+    public String getzName() {
+        return zName;
+    }
+
+    public void setzName(String zName) {
+        this.zName = zName;
+    }
+
+    public String getPicRef() {
+
+        return picRef;
+    }
+
+    public void setPicRef(String picRef) {
+        this.picRef = picRef;
+    }
 
     //default constructor for empty zone
     //constructor allows for full zone config

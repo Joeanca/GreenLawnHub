@@ -11,11 +11,12 @@ public class GreenHub {
     private String serial;
     private int ports;
     private List<Zone> zoneList;
-    private List<String> schedulesList;
+    private List<Schedules> schedulesList;
+
     // EMPTY CONSTRUCTOR FOR FIREBASE
     public GreenHub() {}
     // OVERLOADED CONSTRUCTOR FOR SETTING IT UP
-    public GreenHub(String serial, List<Zone> zoneList, List<String> schedulesList) {
+    public GreenHub(String serial, List<Zone> zoneList, List<Schedules> schedulesList) {
         this.serial = serial;
         this.zoneList = zoneList;
         this.schedulesList = schedulesList;
@@ -56,11 +57,11 @@ public class GreenHub {
         return valid;
     }
 
-    public List<String> getSchedulesList() {
+    public List<Schedules> getSchedulesList() {
         return schedulesList;
     }
 
-    public void setSchedulesList(List<String> schedulesList) {
+    public void setSchedulesList(List<Schedules> schedulesList) {
         this.schedulesList = schedulesList;
     }
 }
