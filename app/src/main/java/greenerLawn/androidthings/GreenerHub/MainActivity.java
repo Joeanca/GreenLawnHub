@@ -47,6 +47,7 @@ public class MainActivity extends Activity {
     private List<Switch> switchList;
     private GreenHub hub = new GreenHub(serial, availZones);
     private Schedules mCurrentSchedule = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -158,7 +159,11 @@ public class MainActivity extends Activity {
                         Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever part 1");
                         String port = dataSnapshot.getValue(Zone.class).getZoneNumber();
                         boolean iszOnOff= dataSnapshot.getValue(Zone.class).iszOnOff();
+
                         toggleLED(port, iszOnOff );
+                        if(!iszOnOff){
+                     //       setNextSchedule(mCurrentSchedule);
+                        }
                     }
 
                     @Override
@@ -179,17 +184,25 @@ public class MainActivity extends Activity {
         myRef.child("schedules").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-
+//
+//                Schedules temp = dataSnapshot.getValue(Schedules.class);
+//                if(mCurrentSchedule == null) {
+//                    mCurrentSchedule = temp;
+//                } else if (mCurrentSchedule.getDay() == temp.getDay()){}
+                setFirstSchedule(Calendar.DAY_OF_WEEK);
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
 //                String zoneGUID = dataSnapshot.getValue(Schedules.class).getzGUID();
 //                setNextSchedule(zoneGUID);
+                setFirstSchedule(Calendar.DAY_OF_WEEK);
             }
 
             @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {}
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                setFirstSchedule(Calendar.DAY_OF_WEEK);
+            }
 
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
@@ -199,15 +212,15 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void setNextSchedule(String zoneGUID, long dur, long startTime, long endTime){
+    private void setNextSchedule(Schedules currentSchedule){
 
         AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
         Intent intent = new Intent(MainActivity.this, SprinklerReceiver.class);
         intent.setAction("greenerLawn.androidthings.GreenerHub");
-        intent.putExtra("zoneId", zoneGUID);
-        intent.putExtra("duration",  dur);
-        intent.putExtra("startTime", startTime);
-        intent.putExtra("endTime", endTime);
+        intent.putExtra("zoneId", currentSchedule.getzGUID());
+        intent.putExtra("duration",  currentSchedule.getDuration());
+        intent.putExtra("startTime", currentSchedule.getStartTime());
+        intent.putExtra("endTime", currentSchedule.getEndTime());
         intent.putExtra("zoneOn", true);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, intent, 0);
@@ -215,7 +228,7 @@ public class MainActivity extends Activity {
         alarmManager.cancel(pendingIntent);
 
         long currentTime = System.currentTimeMillis();
-        long oneMinute = 60 * 100; //second not min
+        long oneMinute = 30 * 1000; //second not min
         Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever");
         alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
@@ -244,12 +257,12 @@ public class MainActivity extends Activity {
                         }
                     }
                     if(changed){
-                        setNextSchedule(mCurrentSchedule.getzGUID(), mCurrentSchedule.getDuration(), mCurrentSchedule.getStartTime(), mCurrentSchedule.getEndTime());
+                        setNextSchedule(mCurrentSchedule);
                     }
                 }  else {
                     int nextDayOfWeek;
-                    if(currentDayOfWeek == 7) {
-                        nextDayOfWeek = 0;
+                    if(currentDayOfWeek == Calendar.SATURDAY) {
+                        nextDayOfWeek = Calendar.SUNDAY;
                     }
                     //@TODO this is gonna cause problems if no schedule, need to come up with better solution
                     nextDayOfWeek = currentDayOfWeek +1;

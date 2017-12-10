@@ -30,14 +30,14 @@ public class SprinklerReceiver extends BroadcastReceiver {
             if (zOnOff) {
                 Log.d("BROADCASTRECIEVED", "zone on is true");
                 i.putExtra("zOnOff", true);
-                setNextSchedule(zoneId, context);
+                setNextSchedule(zoneId, context, extras.getLong("duration", 0));
             } else {
                 Log.d("BROADCASTRECIEVED", "Ending Schedule");
                 i.putExtra("zOnOff", false);
             }
             i.putExtra("zoneName", "1");
-            i.putExtra("endTime", "1:00");
-            i.putExtra("startTime", "10:00");
+            i.putExtra("endTimer", extras.getLong("endTime", 0));
+            i.putExtra("startTimer", extras.getLong("startTime", 0));
             i.putExtra("zoneID", zoneId);
             context.getApplicationContext().startActivity(i);
         }
@@ -45,8 +45,8 @@ public class SprinklerReceiver extends BroadcastReceiver {
 
     }
 
-    private void setNextSchedule(String zoneGUID, Context context){
-        long dur = 1000;
+    private void setNextSchedule(String zoneGUID, Context context, Long dur){
+
         AlarmManager alarmManager = (AlarmManager)context.getSystemService(ALARM_SERVICE);
         Intent intent = new Intent(context.getApplicationContext(), SprinklerReceiver.class);
         intent.setAction("greenerLawn.androidthings.GreenerHub");
@@ -57,7 +57,7 @@ public class SprinklerReceiver extends BroadcastReceiver {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 1, intent, 0);
 
         long currentTime = System.currentTimeMillis();
-        long oneMinute = 120 * 100; //second not min
+        long oneMinute = (dur +5000); //second not min
         Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever");
         alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
