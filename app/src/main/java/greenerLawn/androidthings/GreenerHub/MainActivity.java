@@ -18,11 +18,13 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 import android.widget.Switch;
@@ -31,10 +33,11 @@ import android.widget.Switch;
 public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
-    private static final String deviceID = "pi3";
+    private static final String deviceID = "pi1";
     private static final String serial = "pi1Password";
     private static final int availZones = 8;
     private static List<Zone> zoneList = new ArrayList<Zone>();
+    private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference deviceDBRef;
     private final List<String> LEDS= new ArrayList<String>(Arrays.asList("BCM4", "BCM17", "BCM27", "BCM22", "BCM12", "BCM23", "BCM24", "BCM25"));
     List <Gpio> LedGPIO;
@@ -42,7 +45,8 @@ public class MainActivity extends Activity {
     private Gpio mLedGpio4,mLedGpio17,mLedGpio27,mLedGpio22,mLedGpio12,mLedGpio23,mLedGpio24,mLedGpio25;
     private Switch switch1, switch2, switch3, switch4, switch5, switch6, switch7, switch8;
     private List<Switch> switchList;
-    private GreenHub hub = new GreenHub(serial, availZones);;
+    private GreenHub hub = new GreenHub(serial, availZones);
+    private Schedules mCurrentSchedule = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +62,7 @@ public class MainActivity extends Activity {
         setSwitches();
 
         // SETUP DB
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
+
         DatabaseReference myRef = database.getReference("greennerHubs").child(deviceID);
         eventHandler(myRef);
 
@@ -70,6 +74,9 @@ public class MainActivity extends Activity {
         // TODO update pie on boot or resume previous programming
 
         // TODO setting scheduling up and changes
+        Calendar calendar = Calendar.getInstance();
+        int currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        setFirstSchedule(currentDayOfWeek);
     }
 
     private void setSwitches() {
@@ -172,14 +179,13 @@ public class MainActivity extends Activity {
         myRef.child("schedules").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                myRef.child("zones").child("-L-tzs9RXl3icYcvJ2t0").child("zOnOff").setValue(false);
+
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                String zoneGUID = dataSnapshot.getValue(Schedules.class).getzGUID();
-                //myRef.child("zones").child(zoneGUID).child("zOnOff").setValue(true);
-                setNextSchedule(zoneGUID);
+//                String zoneGUID = dataSnapshot.getValue(Schedules.class).getzGUID();
+//                setNextSchedule(zoneGUID);
             }
 
             @Override
@@ -193,15 +199,20 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void setNextSchedule(String zoneGUID){
-        long dur = 1000;
+    private void setNextSchedule(String zoneGUID, long dur, long startTime, long endTime){
+
         AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
         Intent intent = new Intent(MainActivity.this, SprinklerReceiver.class);
         intent.setAction("greenerLawn.androidthings.GreenerHub");
         intent.putExtra("zoneId", zoneGUID);
         intent.putExtra("duration",  dur);
+        intent.putExtra("startTime", startTime);
+        intent.putExtra("endTime", endTime);
+        intent.putExtra("zoneOn", true);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, intent, 0);
+        //Cancel any alarms that are happening right now.
+        alarmManager.cancel(pendingIntent);
 
         long currentTime = System.currentTimeMillis();
         long oneMinute = 60 * 100; //second not min
@@ -210,6 +221,47 @@ public class MainActivity extends Activity {
                 AlarmManager.RTC_WAKEUP,
                 currentTime + oneMinute,
                 pendingIntent);
+    }
+
+    private void setFirstSchedule(final int currentDayOfWeek){
+        DatabaseReference scheduleRef = database.getReference("greennerHubs/"+deviceID+"/schedules");
+
+        Query q = scheduleRef.orderByChild("day").equalTo(currentDayOfWeek);
+
+        q.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()){
+                    boolean changed = false;
+                    for(DataSnapshot schedule : dataSnapshot.getChildren()){
+                        Schedules temp = schedule.getValue(Schedules.class);
+                        if(mCurrentSchedule == null) {
+                            mCurrentSchedule = temp;
+                            changed = true;
+                        } else if (temp.getStartTime() < mCurrentSchedule.getStartTime()) {
+                            mCurrentSchedule = temp;
+                            changed = true;
+                        }
+                    }
+                    if(changed){
+                        setNextSchedule(mCurrentSchedule.getzGUID(), mCurrentSchedule.getDuration(), mCurrentSchedule.getStartTime(), mCurrentSchedule.getEndTime());
+                    }
+                }  else {
+                    int nextDayOfWeek;
+                    if(currentDayOfWeek == 7) {
+                        nextDayOfWeek = 0;
+                    }
+                    //@TODO this is gonna cause problems if no schedule, need to come up with better solution
+                    nextDayOfWeek = currentDayOfWeek +1;
+                    setFirstSchedule(nextDayOfWeek);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
     private void toggleLED(String zoneNumber, boolean ledStateToSet) {

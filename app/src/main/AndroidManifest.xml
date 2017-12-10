@@ -44,6 +44,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity android:name=".ScheduleManager"></activity>
         <receiver android:name=".SprinklerReceiver"></receiver>
         <!--<activity android:name=".WiFi_activity">-->
             <!--<intent-filter>-->

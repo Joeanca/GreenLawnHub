@@ -1,8 +1,8 @@
 package greenerLawn.androidthings.GreenerHub;
 
-
 import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * Created by JC on 2017-11-04.
