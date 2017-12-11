@@ -81,8 +81,7 @@ public class MainActivity extends Activity {
         // TODO authenticate PI to restore firebase security
 
         // TODO update pie on boot or resume previous programming
-
-        // TODO setting scheduling up and changes
+        initialLightsOn();
 
         calendar.setTimeZone(tz);
         int currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
@@ -284,16 +283,16 @@ public class MainActivity extends Activity {
                     int actualDay = calendar.get(Calendar.DAY_OF_WEEK);
                     for(DataSnapshot schedule : dataSnapshot.getChildren()){
                         Schedules temp = schedule.getValue(Schedules.class);
-                        if(mCurrentSchedule == null) {
+                        if(mCurrentSchedule == null && !temp.isPausedByIDC()) {
                             mCurrentSchedule = temp;
                             changed = true;
                         } else if (temp.getDay() != actualDay){
-                            if (temp.getStartTime() < mCurrentSchedule.getStartTime()) {
+                            if (temp.getStartTime() < mCurrentSchedule.getStartTime() && !temp.isPausedByIDC()) {
                                 mCurrentSchedule = temp;
                                 changed = true;
                             }
-                        } else if (temp.getStartTime() > getCurrentTimeInMili()){
-                            if (temp.getStartTime() < mCurrentSchedule.getStartTime() || mCurrentSchedule.getStartTime() < getCurrentTimeInMili()){
+                        } else if (temp.getStartTime() > getCurrentTimeInMili() ){
+                            if (!temp.isPausedByIDC() && temp.getStartTime() < mCurrentSchedule.getStartTime() || mCurrentSchedule.getStartTime() < getCurrentTimeInMili() ){
                                 mCurrentSchedule = temp;
                                 changed = true;
                             }
@@ -320,6 +319,25 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void initialLightsOn(){
+        DatabaseReference zoneRef = database.getReference("greennerHubs/"+deviceID+"zones");
+
+        zoneRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()) {
+                    Zone z = dataSnapshot.getValue(Zone.class);
+                    zoneList.add(z);
+                    toggleLED(z.getZoneNumber(), z.iszOnOff());
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
     private long getCurrentTimeInMili(){
         long hour = calendar.get(Calendar.HOUR_OF_DAY);
         long minute = calendar.get(Calendar.MINUTE);
