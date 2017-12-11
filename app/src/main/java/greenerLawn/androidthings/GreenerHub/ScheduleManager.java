@@ -44,7 +44,8 @@ public class ScheduleManager extends Activity {
         endTimeTV.append(""+endTime);
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference zoneRef = database.getReference("greennerHubs/pi1/zones").child(zoneId);
+        //@TODO Once greener hub is static use the device id insstead of hard code
+        DatabaseReference zoneRef = database.getReference("greennerHubs/pi3/zones").child(zoneId);
         updateZone(zoneRef, onOff);
 
         new CountDownTimer(5000, 1000) {

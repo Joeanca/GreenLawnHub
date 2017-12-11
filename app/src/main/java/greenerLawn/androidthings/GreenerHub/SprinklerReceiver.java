@@ -57,11 +57,11 @@ public class SprinklerReceiver extends BroadcastReceiver {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 1, intent, 0);
 
         long currentTime = System.currentTimeMillis();
-        long oneMinute = (dur +5000); //second not min
+         //second not min
         Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever");
         alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
-                currentTime + oneMinute,
+                currentTime + dur,
                 pendingIntent);
     }
 }

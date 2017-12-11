@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import android.widget.Switch;
 
@@ -33,9 +34,14 @@ import android.widget.Switch;
 public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
-    private static final String deviceID = "pi1";
+    private static final String deviceID = "pi3";
     private static final String serial = "pi1Password";
     private static final int availZones = 8;
+    private static final int ONE_SECOND = 1000;
+    private static final int ONE_MINUTE = 60 * ONE_SECOND;
+    private static final int ONE_HOUR = 60 * ONE_MINUTE;
+    private static final int ONE_DAY = 24 * ONE_HOUR;
+
     private static List<Zone> zoneList = new ArrayList<Zone>();
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference deviceDBRef;
@@ -47,6 +53,8 @@ public class MainActivity extends Activity {
     private List<Switch> switchList;
     private GreenHub hub = new GreenHub(serial, availZones);
     private Schedules mCurrentSchedule = null;
+    private TimeZone tz = TimeZone.getTimeZone("Canada/Mountain");
+    private Calendar calendar = Calendar.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +83,10 @@ public class MainActivity extends Activity {
         // TODO update pie on boot or resume previous programming
 
         // TODO setting scheduling up and changes
-        Calendar calendar = Calendar.getInstance();
+
+        calendar.setTimeZone(tz);
         int currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        Log.d("SOMETHING", "current day is "+currentDayOfWeek);
         setFirstSchedule(currentDayOfWeek);
     }
 
@@ -162,7 +172,7 @@ public class MainActivity extends Activity {
 
                         toggleLED(port, iszOnOff );
                         if(!iszOnOff){
-                     //       setNextSchedule(mCurrentSchedule);
+                            setFirstSchedule(calendar.get(Calendar.DAY_OF_WEEK));
                         }
                     }
 
@@ -189,19 +199,22 @@ public class MainActivity extends Activity {
 //                if(mCurrentSchedule == null) {
 //                    mCurrentSchedule = temp;
 //                } else if (mCurrentSchedule.getDay() == temp.getDay()){}
-                setFirstSchedule(Calendar.DAY_OF_WEEK);
+                calendar.setTimeZone(tz);
+                setFirstSchedule(calendar.get(Calendar.DAY_OF_WEEK));
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
 //                String zoneGUID = dataSnapshot.getValue(Schedules.class).getzGUID();
 //                setNextSchedule(zoneGUID);
-                setFirstSchedule(Calendar.DAY_OF_WEEK);
+                calendar.setTimeZone(tz);
+                setFirstSchedule(calendar.get(Calendar.DAY_OF_WEEK));
             }
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
-                setFirstSchedule(Calendar.DAY_OF_WEEK);
+                calendar.setTimeZone(tz);
+                setFirstSchedule(calendar.get(Calendar.DAY_OF_WEEK));
             }
 
             @Override
@@ -213,6 +226,7 @@ public class MainActivity extends Activity {
     }
 
     private void setNextSchedule(Schedules currentSchedule){
+        calendar.setTimeZone(tz);
 
         AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
         Intent intent = new Intent(MainActivity.this, SprinklerReceiver.class);
@@ -228,15 +242,36 @@ public class MainActivity extends Activity {
         alarmManager.cancel(pendingIntent);
 
         long currentTime = System.currentTimeMillis();
-        long oneMinute = 30 * 1000; //second not min
+        long startTime;
+        long dayDifference;
+        long currentTimeInMili = getCurrentTimeInMili();
+        Log.d("CURRENT HOUR", "currentTimeinMili: "+currentTimeInMili);
+        if (calendar.get(Calendar.DAY_OF_WEEK) == mCurrentSchedule.getDay() && mCurrentSchedule.getStartTime() > currentTimeInMili){
+            startTime = mCurrentSchedule.getStartTime() - currentTimeInMili;
+            Log.d("START TIME TODAY", "startTime of current schedue: "+startTime);
+        } else {
+            long dayOfTheWeek = calendar.get(Calendar.DAY_OF_WEEK);
+            if (dayOfTheWeek > mCurrentSchedule.getDay()) {
+                dayDifference = (7-dayOfTheWeek + mCurrentSchedule.getDay()) * ONE_DAY;
+            } else {
+                long tempTime = mCurrentSchedule.getDay() - dayOfTheWeek;
+                if (tempTime == 0) {
+                    tempTime = 7;
+                }
+                dayDifference = tempTime * ONE_DAY;
+            }
+            startTime = dayDifference + (mCurrentSchedule.getStartTime() - currentTimeInMili);
+            Log.d("START TIME NOT TODAY", "startTime of current schedue: "+startTime);
+        }
         Log.d("BROADCASTRECIEVED", "onReceive: Setting up reciever");
         alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
-                currentTime + oneMinute,
+                currentTime + startTime,
                 pendingIntent);
     }
 
     private void setFirstSchedule(final int currentDayOfWeek){
+        calendar.setTimeZone(tz);
         DatabaseReference scheduleRef = database.getReference("greennerHubs/"+deviceID+"/schedules");
 
         Query q = scheduleRef.orderByChild("day").equalTo(currentDayOfWeek);
@@ -246,26 +281,34 @@ public class MainActivity extends Activity {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()){
                     boolean changed = false;
+                    int actualDay = calendar.get(Calendar.DAY_OF_WEEK);
                     for(DataSnapshot schedule : dataSnapshot.getChildren()){
                         Schedules temp = schedule.getValue(Schedules.class);
                         if(mCurrentSchedule == null) {
                             mCurrentSchedule = temp;
                             changed = true;
-                        } else if (temp.getStartTime() < mCurrentSchedule.getStartTime()) {
-                            mCurrentSchedule = temp;
-                            changed = true;
+                        } else if (temp.getDay() != actualDay){
+                            if (temp.getStartTime() < mCurrentSchedule.getStartTime()) {
+                                mCurrentSchedule = temp;
+                                changed = true;
+                            }
+                        } else if (temp.getStartTime() > getCurrentTimeInMili()){
+                            if (temp.getStartTime() < mCurrentSchedule.getStartTime() || mCurrentSchedule.getStartTime() < getCurrentTimeInMili()){
+                                mCurrentSchedule = temp;
+                                changed = true;
+                            }
                         }
                     }
                     if(changed){
                         setNextSchedule(mCurrentSchedule);
                     }
                 }  else {
-                    int nextDayOfWeek;
-                    if(currentDayOfWeek == Calendar.SATURDAY) {
-                        nextDayOfWeek = Calendar.SUNDAY;
+                    int nextDayOfWeek = currentDayOfWeek;
+                    if(nextDayOfWeek >= Calendar.SATURDAY) {
+                        nextDayOfWeek = 0;
                     }
                     //@TODO this is gonna cause problems if no schedule, need to come up with better solution
-                    nextDayOfWeek = currentDayOfWeek +1;
+                    nextDayOfWeek = nextDayOfWeek +1;
                     setFirstSchedule(nextDayOfWeek);
                 }
             }
@@ -275,6 +318,15 @@ public class MainActivity extends Activity {
 
             }
         });
+    }
+
+    private long getCurrentTimeInMili(){
+        long hour = calendar.get(Calendar.HOUR_OF_DAY);
+        long minute = calendar.get(Calendar.MINUTE);
+        hour = hour * ONE_HOUR;
+        minute = minute * ONE_MINUTE;
+        long currentTimeOfDay = hour + minute;
+        return currentTimeOfDay;
     }
 
     private void toggleLED(String zoneNumber, boolean ledStateToSet) {
